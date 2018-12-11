@@ -123,6 +123,7 @@ const inputBtn = document.querySelector('.js-search-btn');
 
 // API Calls //
 
+// OpenWeather
 const openWeather = (location, mainCb) => {
     // if (search === "" || search.trim() === "") {
     //     return;
@@ -155,7 +156,19 @@ const darkSky = (lat, lon, mainCb) => {
 
 
 }
-// openWeather('Austin,us')
+
+
+// Giphy API
+const getGifs = (search, mainCb) => {
+    const api_key = 'siIyo4w5mg0REENX76Sr57QTgkt3BWvY';
+    const url = `https://api.giphy.com/v1/gifs/search?api_key=${api_key}&q=${search}&limit=1`;
+
+    GETRequest(url, cb => {
+        mainCb(cb);
+    });
+
+}
+
 
 
 // Helper Functions // 
@@ -231,6 +244,15 @@ const buildForecast = (openWeather, darkSky) => {
 
     for (let i = 0; i < 5; i ++) {
         let currentDay = darkSky.daily.data[i];
+
+        if(!state.gifs[currentDay.icon]){
+        getGifs(currentDay.icon, cb => {
+            state.gifs[currentDay.icon] = cb.data[0].images.original.url;
+            console.log(`giphy at i = ${i}`)
+            render(state);
+        });
+    }
+
         const day = {};
             day.time = currentDay.time;
             day.icon = currentDay.icon;
@@ -238,13 +260,14 @@ const buildForecast = (openWeather, darkSky) => {
             day.low = currentDay.temperatureLow;
             day.summary = currentDay.summary;
             nuCity.forecast.push(day);
-    }
+    };
 
     
     state.locations.unshift(nuCity);
+    console.log(`main`)
     render(state);
 
-}
+};
 
 
 // State
@@ -253,13 +276,12 @@ const state = {
     locations: [],
   
     gifs: {
-        'partly-cloudy': '',
         'not-loaded': 'https://media1.giphy.com/media/3o7bu3XilJ5BOiSGic/giphy.gif',
     },
 
     loc_hist: [],
 
-}
+};
 
 
 
@@ -385,3 +407,8 @@ console.log(state);
             -it's a city
         
 */
+
+getGifs('sun', cb => {
+    console.log(cb.data[0].images.original.url);
+
+})
