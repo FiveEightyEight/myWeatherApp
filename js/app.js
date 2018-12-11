@@ -173,47 +173,82 @@ const getGifs = (search, mainCb) => {
 
 // Helper Functions // 
 
-const checkLocHist = (loc) => {
+const checkLocHist = (loc, notFound = true) => {
 
-    // Checks loc_History to see if it exist in memory
+    // check if any cities are stored in locations array in state obj
+    if (state.locations.length > 0) {
+        // if true, then
+        // loop through locations array in state obj
+        for (let i = 0; i < state.locations.length; i++) {
 
-    for (let i = 0; i < state.loc_hist.length; i++) {
+            // store the name of city in variable
+            const cityName = state.locations[i].city.trim().toLowerCase();
 
-        const city = state.loc_hist[i].city.toLowerCase();
-        if (loc === city) {
-            const lat = state.loc_hist[i].lat;
-            const lon = state.loc_hist[i].lon;
-            darkSky(lat, lon, d => {
-                // THIS IS WHERE DARKSKY RETURNS DATA
-                // Parse darkSky text
-                const drkSky = JSON.parse(d.res.text);
-                buildForecast(state.loc_hist[i], drkSky);
-                // console.log(d.res.text);
+            // does cityName at current index match the loc entered?
+            if (loc === cityName) {
+                
+                //loc is found, no need to call the weather APIs
+                notFound = false;
+                // if there is a match, move city to first index
+                const currentCity = state.locations[i];
+                const firstPart = state.locations.slice(0, i);
+                const lastPart = state.locations.slice(i + 1)
 
-            });
-            return true;
+                state.locations = [currentCity].concat(firstPart.concat(lastPart));
+
+                render(state);
+                return true;
+            }
+
         }
+
+
     }
 
-    // Was not found, RUN openWeather
 
-    openWeather(loc, cb => {
-        console.log(`FALSE: RUNNING OPENING WEATHER ON: ${loc}`);
+    // loc NOT found in locations Checks loc_History to see if it exist in openWeather memory
+    // if not in openWeather, do API call to get lat & lon
+    if (notFound) {
+        for (let i = 0; i < state.loc_hist.length; i++) {
 
-        darkSky(cb.lat, cb.lon, d => {
-            console.log(`RUNNING DARKSKY ON ${loc}`);
-            // Parse darkSky text
-            const drkSky = JSON.parse(d.res.text);
-            // THIS IS WHERE DARKSKY RETURNS DATA
-            buildForecast(cb, drkSky)
-            // console.log(d.res.text);
+            const city = state.loc_hist[i].city.toLowerCase();
+            if (loc === city) {
+                const lat = state.loc_hist[i].lat;
+                const lon = state.loc_hist[i].lon;
+                darkSky(lat, lon, d => {
+                    // THIS IS WHERE DARKSKY RETURNS DATA
+                    // Parse darkSky text
+                    const drkSky = JSON.parse(d.res.text);
+                    buildForecast(state.loc_hist[i], drkSky);
+                    // console.log(d.res.text);
+
+                });
+                return true;
+            }
+        }
+
+        // Was not found, RUN openWeather
+
+        openWeather(loc, cb => {
+            console.log(`FALSE: RUNNING OPENING WEATHER ON: ${loc}`);
+
+            darkSky(cb.lat, cb.lon, d => {
+                console.log(`RUNNING DARKSKY ON ${loc}`);
+                // Parse darkSky text
+                const drkSky = JSON.parse(d.res.text);
+                // THIS IS WHERE DARKSKY RETURNS DATA
+                buildForecast(cb, drkSky)
+                // console.log(d.res.text);
+            })
         })
-    })
-    return false;
+        return false;
+
+    }
+    // render(state);
 }
 
 
-
+// API caller // Needs a URL, data received passed through a callback
 const GETRequest = (url, cb) => {
     let request = new XMLHttpRequest();
     request.open('GET', url);
@@ -232,37 +267,48 @@ const buildForecast = (openWeather, darkSky) => {
     console.log(darkSky);
     console.log('~*~*~*~**~*~*~*~*~*~')
 
-    const testArray = [];
 
+    // construct an empty city object 
     const nuCity = {};
+
+    // manually assign keys with the corresponding value from the respective API
     nuCity.city = openWeather.city;
     nuCity.lat = openWeather.lat;
     nuCity.lon = openWeather.lon;
     nuCity.lastUpdated = darkSky.currently.time;
+
+    // create an empty array to hold forecast objects for the next five days
     nuCity.forecast = [];
-    
 
-    for (let i = 0; i < 5; i ++) {
+    // loop through the first five forecast
+    for (let i = 0; i < 5; i++) {
         let currentDay = darkSky.daily.data[i];
+    
+    // check gify KEY object in state to see if the ICON for the CURRENT forecast day exist
+        if (!state.gifs[currentDay.icon]) { // NOTE: this if statement evalutes to TRUE if 
+                                            // state.gifs[currentDay.icon]  evaluates to undefined
 
-        if(!state.gifs[currentDay.icon]){
-        getGifs(currentDay.icon, cb => {
-            state.gifs[currentDay.icon] = cb.data[0].images.original.url;
-            console.log(`giphy at i = ${i}`)
-            render(state);
-        });
-    }
+            // if it does NOT exist, do an API call to giphy
+            getGifs(currentDay.icon, cb => {
+                state.gifs[currentDay.icon] = cb.data[0].images.original.url;
+                console.log(`giphy at i = ${i}`)
 
+                // giphy was updated so RENDER the state
+                // this will also update icons onces they have loaded (API call is received)
+                render(state);
+            });
+        }
+        // manually assign keys with the corresponding value from the darkSky API
         const day = {};
-            day.time = currentDay.time;
-            day.icon = currentDay.icon;
-            day.high = currentDay.temperatureHigh;
-            day.low = currentDay.temperatureLow;
-            day.summary = currentDay.summary;
-            nuCity.forecast.push(day);
+        day.time = currentDay.time;
+        day.icon = currentDay.icon;
+        day.high = currentDay.temperatureHigh;
+        day.low = currentDay.temperatureLow;
+        day.summary = currentDay.summary;
+        nuCity.forecast.push(day);
     };
 
-    
+    // place the nuCity object at the start of the state.locations array.
     state.locations.unshift(nuCity);
     console.log(`main`)
     render(state);
@@ -274,7 +320,7 @@ const buildForecast = (openWeather, darkSky) => {
 
 const state = {
     locations: [],
-  
+
     gifs: {
         'not-loaded': 'https://media1.giphy.com/media/3o7bu3XilJ5BOiSGic/giphy.gif',
     },
@@ -297,7 +343,7 @@ input.addEventListener('keydown', e => {
             return;
         }
 
-        console.log(`${search} is currently in history? ${checkLocHist(search)}`)
+        console.log(`${search} found in memory? ${checkLocHist(search)}`)
         e.target.value = '';
 
 
@@ -318,7 +364,7 @@ inputBtn.addEventListener('click', e => {
 })
 
 const getDayName = (datetime) => {
-    const day = new Date(datetime*1000).getDay();
+    const day = new Date(datetime * 1000).getDay();
     const days = ["Sun", "Mon", "Tues", "Wednes", "Thurs", "Fri", "Satur"]
     return days[day] + "day";
 }
@@ -350,7 +396,7 @@ const renderForecastItem = (forecastItem, state) => {
 
 
 // RENDER 
-const render = state => {    
+const render = state => {
 
     const weatherContainer = document.querySelector('.js-forecast');
     let html = '';
@@ -358,10 +404,10 @@ const render = state => {
         let forecastHTML = '';
 
         for (let i = 0; i < 5; i++) {
-            let forecastItem = location.forecast[i];  // forecast per day
+            let forecastItem = location.forecast[i]; // forecast per day
             forecastHTML += renderForecastItem(forecastItem, state);
         }
-        
+
         html += `<div class="ui five column grid centered">
            
             
@@ -408,7 +454,9 @@ console.log(state);
         
 */
 
-getGifs('sun', cb => {
-    console.log(cb.data[0].images.original.url);
 
-})
+// getGifs test
+// getGifs('sun', cb => {
+//     console.log(cb.data[0].images.original.url);
+
+// })
