@@ -117,6 +117,8 @@ class Location {
 
 // {Storage Variables}//
 const loc_hist = new Storage('loc-hist');
+const loc = new Storage('loc');
+const cityGif = new Storage('cityGif');
 
 // Global  Selectors // 
 const input = document.querySelector('.js-input-main');
@@ -200,6 +202,7 @@ const checkLocHist = (loc, notFound = true) => {
                 state.locations = [currentCity].concat(firstPart.concat(lastPart));
 
                 render(state);
+                loc.save(state.locations);
                 return true;
             }
 
@@ -299,6 +302,7 @@ const buildForecast = (openWeather, darkSky) => {
                 // giphy was updated so RENDER the state
                 // this will also update icons onces they have loaded (API call is received)
                 render(state);
+                cityGif.save(state.gifs);
             });
         }
         // manually assign keys with the corresponding value from the darkSky API
@@ -315,6 +319,7 @@ const buildForecast = (openWeather, darkSky) => {
     state.locations.unshift(nuCity);
     console.log(`main`)
     render(state);
+    loc.save(state.locations);
 
 };
 
@@ -327,8 +332,9 @@ const removeCity = (index) => {
 
     state.locations = firstPart.concat(lastPart);
     */
-   state.locations.splice(index, 1);
+    state.locations.splice(index, 1);
     render(state);
+    loc.save(state.locations);
 }
 
 
@@ -472,7 +478,7 @@ const render = state => {
     weatherContainer.innerHTML = html;
 }
 
-render(state)
+
 
 // Check Storage
 
@@ -482,9 +488,19 @@ if (loc_hist.getStorage()) {
     state.loc_hist = loc_hist.getStorage();
 }
 
+if (loc.getStorage()) {
+    state.locations = loc.getStorage();
+}
+
+if (cityGif.getStorage()) {
+    state.gifs = cityGif.getStorage();
+}
+
+render(state)
 
 
 // TEST
+
 
 console.log(state);
 
