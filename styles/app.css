@@ -19,3 +19,8 @@ h1 {
     padding: 0;
     margin: 0;
 }
+
+.card-img-top {
+    max-width: 320px;
+    max-height: 180px;
+}

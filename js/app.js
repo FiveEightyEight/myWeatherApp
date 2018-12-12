@@ -77,6 +77,8 @@ if (stored_state) {
 ^^ ///                   Check Local Storage                               //// ^^
 */
 
+// Unsplash: https://source.unsplash.com/collection/boat/300x200
+
 // Classes
 
 class Storage {
@@ -186,7 +188,7 @@ const checkLocHist = (loc, notFound = true) => {
 
             // does cityName at current index match the loc entered?
             if (loc === cityName) {
-                
+
                 //loc is found, no need to call the weather APIs
                 notFound = false;
                 // if there is a match, move city to first index
@@ -283,10 +285,10 @@ const buildForecast = (openWeather, darkSky) => {
     // loop through the first five forecast
     for (let i = 0; i < 5; i++) {
         let currentDay = darkSky.daily.data[i];
-    
-    // check gify KEY object in state to see if the ICON for the CURRENT forecast day exist
+
+        // check gify KEY object in state to see if the ICON for the CURRENT forecast day exist
         if (!state.gifs[currentDay.icon]) { // NOTE: this if statement evalutes to TRUE if 
-                                            // state.gifs[currentDay.icon]  evaluates to undefined
+            // state.gifs[currentDay.icon]  evaluates to undefined
 
             // if it does NOT exist, do an API call to giphy
             getGifs(currentDay.icon, cb => {
@@ -375,7 +377,20 @@ const renderForecastItem = (forecastItem, state) => {
     if (typeof iconURL === "undefined") {
         iconURL = state.gifs['not-loaded']
     }
-    return `<div class="column">
+
+    return `<div class="card">
+    <img class="card-img-top"  src="${iconURL}" alt="Card image cap">
+    <div class="card-body">
+        <h5 class="card-title">${Math.floor(forecastItem.high)} &deg; F / ${Math.floor(forecastItem.low)} &deg; F</h5>
+        <span class="text-muted">${day}</span>
+        <p class="card-text"> ${forecastItem.summary}</p>
+    </div>
+    <div class="card-footer">
+        <small class="text-muted">Last updated 3 mins ago</small>
+    </div>
+    </div>`;
+    
+    /*`<div class="column">
         <div class="ui card fluid">
             <div class="image">
             <img src="${iconURL}">
@@ -390,7 +405,8 @@ const renderForecastItem = (forecastItem, state) => {
             </div>
             </div>
         </div>
-    </div>`;
+    </div>`*/
+    
 }
 
 
@@ -408,16 +424,17 @@ const render = state => {
             forecastHTML += renderForecastItem(forecastItem, state);
         }
 
-        html += `<div class="ui five column grid centered">
+        // `<div class="ui five column grid centered">
            
             
-            <div class='row'>
+        html += ` <div class='row text-center p-3'>
             <p class='font-weight-bold h1 col-12'>${location.city}</p>
             <p class='text-muted col-12'>${location.lat}, ${location.lon}</p>
             </div>
-
+            <div class="card-group pb-5 px-5">
             ${forecastHTML}
-        </div>`;
+            </div>`;
+        // </div>`
         // <h1 style="width:100%;">${location.city}</h1>
         // <h3 style="width:100%;">${location.lat}, ${location.lon}</h3>
     }
