@@ -121,6 +121,7 @@ const loc_hist = new Storage('loc-hist');
 // Global  Selectors // 
 const input = document.querySelector('.js-input-main');
 const inputBtn = document.querySelector('.js-search-btn');
+const weatherContainer = document.querySelector('.js-forecast');
 
 
 // API Calls //
@@ -205,10 +206,10 @@ const checkLocHist = (loc, notFound = true) => {
         }
 
 
-    }
+    } // More Code Below //
 
 
-    // loc NOT found in locations Checks loc_History to see if it exist in openWeather memory
+    // loc NOT found in state.locations Checks loc_History to see if it exist in openWeather memory
     // if not in openWeather, do API call to get lat & lon
     if (notFound) {
         for (let i = 0; i < state.loc_hist.length; i++) {
@@ -317,6 +318,19 @@ const buildForecast = (openWeather, darkSky) => {
 
 };
 
+// Remove City from State
+
+const removeCity = (index) => {
+    /*
+    const firstPart = state.locations.slice(0, index);
+    const lastPart = state.locations.slice(index + 1)
+
+    state.locations = firstPart.concat(lastPart);
+    */
+   state.locations.splice(index, 1);
+    render(state);
+}
+
 
 // State
 
@@ -363,7 +377,19 @@ inputBtn.addEventListener('click', e => {
     console.log(`${search} is currently in history? ${checkLocHist(search)}`)
     input.value = '';
 
-})
+});
+
+weatherContainer.addEventListener('click', e => {
+    if (e.target.matches('.js-delete-btn')) {
+        const index = e.target.getAttribute('data-index');
+        removeCity(index);
+    }
+});
+
+
+
+
+// RENDER HELPERS
 
 const getDayName = (datetime) => {
     const day = new Date(datetime * 1000).getDay();
@@ -389,7 +415,7 @@ const renderForecastItem = (forecastItem, state) => {
         <small class="text-muted">Last updated 3 mins ago</small>
     </div>
     </div>`;
-    
+
     /*`<div class="column">
         <div class="ui card fluid">
             <div class="image">
@@ -406,7 +432,7 @@ const renderForecastItem = (forecastItem, state) => {
             </div>
         </div>
     </div>`*/
-    
+
 }
 
 
@@ -416,19 +442,22 @@ const render = state => {
 
     const weatherContainer = document.querySelector('.js-forecast');
     let html = '';
-    for (let location of state.locations) {
+    // for (let location of state.locations) {
+    for (let x = 0; x < state.locations.length; x++) {
         let forecastHTML = '';
+        let location = state.locations[x];
 
         for (let i = 0; i < 5; i++) {
+
             let forecastItem = location.forecast[i]; // forecast per day
             forecastHTML += renderForecastItem(forecastItem, state);
         }
 
         // `<div class="ui five column grid centered">
-           
-            
+
+
         html += ` <div class='row text-center border-top border-dark p-3'>
-            <div class='col-12 text-right'><a class='btn btn-danger text-white h5'>X</a></div>
+            <div class='col-12 text-right'><a class='btn btn-danger text-white h5 js-delete-btn' data-index=${x}>X</a></div>
             <p class='font-weight-bold h1 col-12'>${location.city}</p>
             <p class='text-muted col-12'>${location.lat}, ${location.lon}</p>
             </div>
