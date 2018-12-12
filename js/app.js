@@ -427,7 +427,8 @@ const render = state => {
         // `<div class="ui five column grid centered">
            
             
-        html += ` <div class='row text-center p-3'>
+        html += ` <div class='row text-center border-top border-dark p-3'>
+            <div class='col-12 text-right'><a class='btn btn-danger text-white h5'>X</a></div>
             <p class='font-weight-bold h1 col-12'>${location.city}</p>
             <p class='text-muted col-12'>${location.lat}, ${location.lon}</p>
             </div>
