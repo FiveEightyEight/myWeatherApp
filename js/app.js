@@ -403,11 +403,73 @@ const getDayName = (datetime) => {
     return days[day] + "day";
 }
 
-const renderForecastItem = (forecastItem, state) => {
-    const day = getDayName(forecastItem.time)
+const renderForecastItem = (forecastItem, state, lastUpdated) => {
+    const day = getDayName(forecastItem.time);
+    let timeNow = new Date();
+    let timeDate = lastUpdated
+
     let iconURL = state.gifs[forecastItem.icon];
     if (typeof iconURL === "undefined") {
         iconURL = state.gifs['not-loaded']
+    }
+    timeDate *= 1000;
+    timeNow = timeNow.getTime();
+    // console.log(`timenow  = ` + timeNow);
+    // console.log(`timeDate = ` + timeDate);
+
+    // timeNow = timeNow.getTime()/1000;
+
+
+    let difference = timeNow - timeDate;
+    // to Milliseconds
+    // console.log(`difference in milliseconds = ${difference}`);
+
+    /*
+  difference_ms = difference_ms/1000;
+
+  var seconds = Math.floor(difference_ms % 60);
+
+  difference_ms = difference_ms/60; 
+  var minutes = Math.floor(difference_ms % 60);
+
+  difference_ms = difference_ms/60; 
+  var hours = Math.floor(difference_ms % 24);  
+
+  var days = Math.floor(difference_ms/24);
+   */
+    difference /= 1000;
+    console.log(`milliseconds = ${difference}`);
+
+    // to seconds
+    const seconds = Math.floor(difference % 60);
+    // console.log(`seconds = ${seconds}`);
+    console.log(difference);
+
+    // to minutes
+    difference = difference / 60;
+    const minutes = Math.floor(difference % 60);
+    // console.log(`minutes = ${minutes}`);
+
+    // to hours
+    difference = difference / 60;
+    const hours = Math.floor(difference % 24);
+    // console.log(`hours = ${hours}`);
+
+    // to days 
+    const days = Math.floor(difference / 24);
+    // console.log(`days = ${days}`);
+
+
+    let timestamp = '';
+    if (seconds === 0) {
+        timestamp = `<small class="text-muted">Just updated</small>`;
+    } else if (minutes <= 0) {
+        timestamp = `<small class="text-muted">Last updated ${seconds} seconds ago</small>`;
+    } else if (hours >= 1) {
+        timestamp = `<small class="text-muted">Last updated ${hours} hour ago</small>`;
+    } else {
+
+        timestamp = `<small class="text-muted">Last updated ${minutes} mins ago</small>`;
     }
 
     return `<div class="card">
@@ -418,7 +480,7 @@ const renderForecastItem = (forecastItem, state) => {
         <p class="card-text"> ${forecastItem.summary}</p>
     </div>
     <div class="card-footer">
-        <small class="text-muted">Last updated 3 mins ago</small>
+        ${timestamp}
     </div>
     </div>`;
 
@@ -456,7 +518,7 @@ const render = state => {
         for (let i = 0; i < 5; i++) {
 
             let forecastItem = location.forecast[i]; // forecast per day
-            forecastHTML += renderForecastItem(forecastItem, state);
+            forecastHTML += renderForecastItem(forecastItem, state, location.lastUpdated);
         }
 
         // `<div class="ui five column grid centered">
