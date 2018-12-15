@@ -468,7 +468,7 @@ const renderForecastItem = (forecastItem, state, seconds, minutes, hours) => {
         timestamp = `<small class="text-muted">Last updated ${minutes} mins ago</small>`;
     }
 
-    return `<div class="card">
+    return `<div class="card btn-outline-dark">
     <img class="card-img-top"  src="${iconURL}" alt="Card image cap">
     <div class="card-body">
         <h5 class="card-title">${Math.floor(forecastItem.high)} &deg; F / ${Math.floor(forecastItem.low)} &deg; F</h5>
@@ -579,15 +579,22 @@ const render = state => {
         // `<div class="ui five column grid centered">
 
 
-        html += ` <div class='row text-center border-top border-dark p-3'>
-            <div class='col-12 text-right'><a class='btn btn-danger text-white h5 js-delete-btn' data-index=${x}>X</a></div>
+        html += `
+            <div class='btn-secondary rounded my-2'> 
+            <div class='row text-center  p-3'> 
+            <div class='col-12 text-right'><button type="button" class="close" aria-label="Close">
+            <span aria-hidden="true" class='js-delete-btn' data-index=${x} >&times;</span>
+          </button></div>
             <p class='font-weight-bold h1 col-12'>${location.city}</p>
-            <p class='text-muted col-12'>${location.lat}, ${location.lon}</p>
+            <p class='text-warning col-12'>${location.lat}, ${location.lon}</p>
             </div>
             <div class="card-group pb-5 px-5">
             ${forecastHTML}
+            </div>
             </div>`;
         // </div>`
+        // <a class='btn btn-danger text-white h5 js-delete-btn' data-index=${x}>X</a>
+        ////border-top border-dark
         // <h1 style="width:100%;">${location.city}</h1>
         // <h3 style="width:100%;">${location.lat}, ${location.lon}</h3>
     }
