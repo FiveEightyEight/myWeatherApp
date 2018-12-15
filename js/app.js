@@ -117,7 +117,7 @@ class Location {
 
 // {Storage Variables}//
 const loc_hist = new Storage('loc-hist');
-const loc = new Storage('loc');
+const locx = new Storage('loc');
 const cityGif = new Storage('cityGif');
 
 // Global  Selectors // 
@@ -202,7 +202,7 @@ const checkLocHist = (loc, notFound = true) => {
                 state.locations = [currentCity].concat(firstPart.concat(lastPart));
 
                 render(state);
-                loc.save(state.locations);
+                locx.save(state.locations);
                 return true;
             }
 
@@ -225,7 +225,12 @@ const checkLocHist = (loc, notFound = true) => {
                     // THIS IS WHERE DARKSKY RETURNS DATA
                     // Parse darkSky text
                     const drkSky = JSON.parse(d.res.text);
-                    buildForecast(state.loc_hist[i], drkSky);
+                    buildForecast(state.loc_hist[i], drkSky, cb => {
+                        state.locations.unshift(cb);
+                        console.log(`${cb.city} added using loc_hist`)
+                        render(state);
+                        locx.save(state.locations);
+                    });
                     // console.log(d.res.text);
 
                 });
@@ -243,7 +248,12 @@ const checkLocHist = (loc, notFound = true) => {
                 // Parse darkSky text
                 const drkSky = JSON.parse(d.res.text);
                 // THIS IS WHERE DARKSKY RETURNS DATA
-                buildForecast(cb, drkSky)
+                buildForecast(cb, drkSky, city => {
+                    state.locations.unshift(city);
+                    console.log(`${city.city} added from scratch`)
+                    render(state);
+                    locx.save(state.locations);
+                })
                 // console.log(d.res.text);
             })
         })
@@ -251,6 +261,24 @@ const checkLocHist = (loc, notFound = true) => {
 
     }
     // render(state);
+}
+const updateLocation = (index) => {
+    const city = state.locations[index];
+    console.log(`${city.city} to be Updated!`)
+    
+
+    darkSky(city.lat, city.lon, d => {
+
+        // Parse darkSky text
+        const drkSky = JSON.parse(d.res.text);
+
+        buildForecast(city, drkSky, cityU => {
+            removeCity(index, cityU);
+        })
+
+    })
+
+
 }
 
 
@@ -266,7 +294,7 @@ const GETRequest = (url, cb) => {
     request.send();
 }
 
-const buildForecast = (openWeather, darkSky) => {
+const buildForecast = (openWeather, darkSky, cb) => {
 
     console.log('IN BUILDER FUNCTION')
     // console.log(openWeather);
@@ -315,26 +343,41 @@ const buildForecast = (openWeather, darkSky) => {
         nuCity.forecast.push(day);
     };
 
+    // city is now passed via cb, to make function more flexible
+
+    cb(nuCity);
+
+
+    /*
     // place the nuCity object at the start of the state.locations array.
     state.locations.unshift(nuCity);
     console.log(`main`)
     render(state);
-    loc.save(state.locations);
+    locx.save(state.locations);
+     */
 
 };
 
 // Remove City from State
 
-const removeCity = (index) => {
+const removeCity = (index, replacement = null) => {
     /*
     const firstPart = state.locations.slice(0, index);
     const lastPart = state.locations.slice(index + 1)
 
     state.locations = firstPart.concat(lastPart);
     */
+   if (replacement === null){
     state.locations.splice(index, 1);
     render(state);
-    loc.save(state.locations);
+    locx.save(state.locations);
+   } else {
+    state.locations.splice(index, 1, replacement);
+            console.log(`city at index ${index} replaced with ${replacement.city}`)
+            render(state);
+            locx.save(state.locations);
+   }
+    
 }
 
 
@@ -403,61 +446,14 @@ const getDayName = (datetime) => {
     return days[day] + "day";
 }
 
-const renderForecastItem = (forecastItem, state, lastUpdated) => {
+const renderForecastItem = (forecastItem, state, seconds, minutes, hours) => {
     const day = getDayName(forecastItem.time);
-    let timeNow = new Date();
-    let timeDate = lastUpdated
+
 
     let iconURL = state.gifs[forecastItem.icon];
     if (typeof iconURL === "undefined") {
         iconURL = state.gifs['not-loaded']
     }
-    timeDate *= 1000;
-    timeNow = timeNow.getTime();
-    // console.log(`timenow  = ` + timeNow);
-    // console.log(`timeDate = ` + timeDate);
-
-    // timeNow = timeNow.getTime()/1000;
-
-
-    let difference = timeNow - timeDate;
-    // to Milliseconds
-    // console.log(`difference in milliseconds = ${difference}`);
-
-    /*
-  difference_ms = difference_ms/1000;
-
-  var seconds = Math.floor(difference_ms % 60);
-
-  difference_ms = difference_ms/60; 
-  var minutes = Math.floor(difference_ms % 60);
-
-  difference_ms = difference_ms/60; 
-  var hours = Math.floor(difference_ms % 24);  
-
-  var days = Math.floor(difference_ms/24);
-   */
-    difference /= 1000;
-    console.log(`milliseconds = ${difference}`);
-
-    // to seconds
-    const seconds = Math.floor(difference % 60);
-    // console.log(`seconds = ${seconds}`);
-    console.log(difference);
-
-    // to minutes
-    difference = difference / 60;
-    const minutes = Math.floor(difference % 60);
-    // console.log(`minutes = ${minutes}`);
-
-    // to hours
-    difference = difference / 60;
-    const hours = Math.floor(difference % 24);
-    // console.log(`hours = ${hours}`);
-
-    // to days 
-    const days = Math.floor(difference / 24);
-    // console.log(`days = ${days}`);
 
 
     let timestamp = '';
@@ -518,7 +514,66 @@ const render = state => {
         for (let i = 0; i < 5; i++) {
 
             let forecastItem = location.forecast[i]; // forecast per day
-            forecastHTML += renderForecastItem(forecastItem, state, location.lastUpdated);
+
+            //***   MOVING DATE AND TIME OUT OF FORECAST RENDER ***
+
+
+            let timeNow = new Date();
+            let timeDate = location.lastUpdated
+
+
+            timeDate *= 1000;
+            timeNow = timeNow.getTime();
+            // console.log(`timenow  = ` + timeNow);
+            // console.log(`timeDate = ` + timeDate);
+
+            // timeNow = timeNow.getTime()/1000;
+
+
+            let difference = timeNow - timeDate;
+            // to Milliseconds
+            // console.log(`difference in milliseconds = ${difference}`);
+
+            /*
+          difference_ms = difference_ms/1000;
+        
+          var seconds = Math.floor(difference_ms % 60);
+        
+          difference_ms = difference_ms/60; 
+          var minutes = Math.floor(difference_ms % 60);
+        
+          difference_ms = difference_ms/60; 
+          var hours = Math.floor(difference_ms % 24);  
+        
+          var days = Math.floor(difference_ms/24);
+           */
+            difference /= 1000;
+            // console.log(`milliseconds = ${difference}`);
+
+            // to seconds
+            const seconds = Math.floor(difference % 60);
+            // console.log(`seconds = ${seconds}`);
+            // console.log(difference);
+
+            // to minutes
+            difference = difference / 60;
+            const minutes = Math.floor(difference % 60);
+            // console.log(`minutes = ${minutes}`);
+
+            // to hours
+            difference = difference / 60;
+            const hours = Math.floor(difference % 24);
+            // console.log(`hours = ${hours}`);
+
+            // to days 
+            // const days = Math.floor(difference / 24);
+
+            if (hours > 1) {
+                updateLocation(x);
+                break;
+            }
+
+            forecastHTML += renderForecastItem(forecastItem, state, seconds, minutes, hours);
         }
 
         // `<div class="ui five column grid centered">
@@ -550,8 +605,8 @@ if (loc_hist.getStorage()) {
     state.loc_hist = loc_hist.getStorage();
 }
 
-if (loc.getStorage()) {
-    state.locations = loc.getStorage();
+if (locx.getStorage()) {
+    state.locations = locx.getStorage();
 }
 
 if (cityGif.getStorage()) {
